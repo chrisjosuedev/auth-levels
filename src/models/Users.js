@@ -1,5 +1,6 @@
 require('dotenv').config()
 const { model, Schema } = require('mongoose')
+
 //const enc = require('mongoose-encryption')
 
 const usersSchema = new Schema ({
@@ -7,10 +8,7 @@ const usersSchema = new Schema ({
     type: String,
     unique: true
   },
-  password: {
-    type: String,
-    minlength: 8
-  }
+  password: String
 })
 
 //usersSchema.plugin(enc, {secret: process.env.SECRET, encryptedFields: ['password']})

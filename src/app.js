@@ -2,7 +2,13 @@ const express = require('express')
 const app = express()
 const path = require('path')
 const ejs = require('ejs')
+
+// Hash MD5 
 const md5 = require('md5')
+
+// Salt + Hash BCrypt
+const bcrypt = require('bcrypt')
+const salt = bcrypt.genSaltSync(10)
 
 // Database
 require('./db')
@@ -34,13 +40,19 @@ app.post('/login', async (req, res) => {
   try {
     const userFound = await User.findOne({email: email})
 
-    if (userFound.password === md5(password)) {
+    // MD5 Hash -> if (userFound.password === md5(password)) {
+    
+    // Salt + Hash Check Password
+    const validPassword = bcrypt.compareSync(password, userFound.password)
+    
+    if (validPassword) { 
       res.render('secrets')
     }
     else {
       res.redirect('/login')
       console.log('Wrong Password')
     }
+    
   } catch (err) {
     console.log(err)
     res.redirect('/login')
@@ -55,9 +67,12 @@ app.get('/register', (req, res) => {
 app.post('/register', async (req, res) => {
   const { email, password } = req.body
 
+  const passwordHash = bcrypt.hashSync(password, salt)
+
   const newUser = new User({
     email,
-    password: md5(password)
+    /* Hash MD5 -> password: md5(password) <- */
+    password: passwordHash
   })
 
   try {
