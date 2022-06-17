@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const path = require('path')
 const ejs = require('ejs')
+const md5 = require('md5')
 
 // Database
 require('./db')
@@ -32,8 +33,13 @@ app.post('/login', async (req, res) => {
 
   try {
     const userFound = await User.findOne({email: email})
-    if (userFound.password === password) {
+
+    if (userFound.password === md5(password)) {
       res.render('secrets')
+    }
+    else {
+      res.redirect('/login')
+      console.log('Wrong Password')
     }
   } catch (err) {
     console.log(err)
@@ -51,7 +57,7 @@ app.post('/register', async (req, res) => {
 
   const newUser = new User({
     email,
-    password
+    password: md5(password)
   })
 
   try {
