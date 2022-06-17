@@ -1,5 +1,6 @@
+require('dotenv').config()
 const mongoose = require('mongoose')
-const uri = 'mongodb+srv://admin:HYJVPVEaiAG3WyZH@cluster0.vm2ap.mongodb.net/usersDB?retryWrites=true&w=majority'
+const uri = process.env.DB_URI
 
 const db = mongoose.connection
 
