@@ -1,19 +1,20 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 const path = require('path')
 const ejs = require('ejs')
 
+// Cookies & Sessions
+const session = require('express-session')
+const passport = require('passport')
+// (En Schema) const passportLocalMongoose = require('passport-local-mongoose')
+
 // Hash MD5 
-const md5 = require('md5')
+//const md5 = require('md5')
 
 // Salt + Hash BCrypt
-const bcrypt = require('bcrypt')
-const salt = bcrypt.genSaltSync(10)
-
-// Database
-require('./db')
-
-const User = require('./models/Users')
+//const bcrypt = require('bcrypt')
+//const salt = bcrypt.genSaltSync(10)
 
 app.use(express.static('public'))
 app.use(express.urlencoded({extended: false}))
@@ -21,6 +22,26 @@ app.use(express.urlencoded({extended: false}))
 // View Engine
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
+
+// Configure Session
+app.use(session({
+  secret: process.env.SESSION,
+  resave: false,
+  saveUninitialized: false
+}))
+
+app.use(passport.initialize())
+app.use(passport.session())
+
+// Database
+require('./db')
+
+const User = require('./models/Users')
+
+passport.use(User.createStrategy())
+
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
 
 // Port
 app.set('port', process.env.PORT || 3000)
@@ -34,55 +55,59 @@ app.get('/login', (req, res) => {
   res.render('login')
 })
 
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body
+app.post('/login', (req, res) => {
+  const { username, password } = req.body
 
-  try {
-    const userFound = await User.findOne({email: email})
+  const user = new User({
+    username,
+    password
+  })
 
-    // MD5 Hash -> if (userFound.password === md5(password)) {
-    
-    // Salt + Hash Check Password
-    const validPassword = bcrypt.compareSync(password, userFound.password)
-    
-    if (validPassword) { 
-      res.render('secrets')
+  req.login(user, (err) => {
+    if (err) {
+      console.log(err)
+    } else {
+      passport.authenticate("local")(req, res, () => {
+        res.redirect('/secrets')
+      })
     }
-    else {
-      res.redirect('/login')
-      console.log('Wrong Password')
-    }
-    
-  } catch (err) {
-    console.log(err)
-    res.redirect('/login')
-  }
-
+  })
 })
 
 app.get('/register', (req, res) => {
   res.render('register')
 })
 
-app.post('/register', async (req, res) => {
-  const { email, password } = req.body
+app.post('/register', (req, res) => {
+  const { username, password } = req.body
 
-  const passwordHash = bcrypt.hashSync(password, salt)
-
-  const newUser = new User({
-    email,
-    /* Hash MD5 -> password: md5(password) <- */
-    password: passwordHash
+  User.register({username}, password, (err, user) => {
+    if (err) {
+      console.log(err)
+      res.redirect('/register')
+    } else {
+      passport.authenticate("local")(req, res, () => {
+        res.redirect('/secrets')
+      })
+    }
   })
+})
 
-  try {
-    await newUser.save()
+app.get('/secrets', (req, res) => {
+  if (req.isAuthenticated()) {
     res.render('secrets')
-  } catch (err) {
-    console.log(err)
-    res.redirect('/register')
+  } else {
+    res.redirect('/login')
   }
+})
 
+app.get('/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      console.log(err)
+    }
+    res.redirect('/')
+  })
 })
 
 // Run Server

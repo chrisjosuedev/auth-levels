@@ -1,10 +1,9 @@
-require('dotenv').config()
 const { model, Schema } = require('mongoose')
-
+const passportLocalMongoose = require('passport-local-mongoose')
 //const enc = require('mongoose-encryption')
 
 const usersSchema = new Schema ({
-  email: {
+  username: {
     type: String,
     unique: true
   },
@@ -12,5 +11,7 @@ const usersSchema = new Schema ({
 })
 
 //usersSchema.plugin(enc, {secret: process.env.SECRET, encryptedFields: ['password']})
+
+usersSchema.plugin(passportLocalMongoose)
 
 module.exports = model('Users', usersSchema)
