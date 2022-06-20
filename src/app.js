@@ -9,6 +9,9 @@ const session = require('express-session')
 const passport = require('passport')
 // (En Schema) const passportLocalMongoose = require('passport-local-mongoose')
 
+// Google OAuth
+const GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
+
 // Hash MD5 
 //const md5 = require('md5')
 
@@ -16,7 +19,7 @@ const passport = require('passport')
 //const bcrypt = require('bcrypt')
 //const salt = bcrypt.genSaltSync(10)
 
-app.use(express.static('public'))
+app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({extended: false}))
 
 // View Engine
@@ -38,21 +41,68 @@ require('./db')
 
 const User = require('./models/Users')
 
+
 passport.use(User.createStrategy())
 
-passport.serializeUser(User.serializeUser())
-passport.deserializeUser(User.deserializeUser())
+// Local
+// passport.serializeUser(User.serializeUser())
+// passport.deserializeUser(User.deserializeUser())
+
+passport.serializeUser((user, cb) => {
+  process.nextTick(() => {
+    cb(null, { id: user.id, username: user.username });
+  });
+});
+
+passport.deserializeUser((user, cb) => {
+  process.nextTick(() => {
+    return cb(null, user);
+  });
+});
+
+// Google Strategy Config
+passport.use(new GoogleStrategy({
+  clientID:     process.env.CLIENT_ID,
+  clientSecret: process.env.CLIENT_SECRET,
+  callbackURL: "http://localhost:3000/auth/google/secrets",
+  passReqToCallback   : true
+},
+(request, accessToken, refreshToken, profile, done) => {
+  User.findOrCreate({ username: profile.email }, (err, user) => {
+    return done(err, user);
+  });
+}
+));
 
 // Port
 app.set('port', process.env.PORT || 3000)
 const port = app.get('port')
 
 app.get('/', (req, res) => {
-  res.render('home')
+  if (req.isAuthenticated()) {
+    res.redirect('/secrets')
+  } else {
+    res.render('home')
+  }
 })
 
+// Google
+app.get('/auth/google',
+  passport.authenticate("google", { scope: ["profile", "email"] }
+));
+
+app.get('/auth/google/secrets',
+    passport.authenticate( 'google', {
+        successRedirect: '/secrets',
+        failureRedirect: '/login'
+}));
+
 app.get('/login', (req, res) => {
-  res.render('login')
+  if (req.isAuthenticated()) {
+    res.redirect('/secrets')
+  } else {
+    res.render('login')
+  }  
 })
 
 app.post('/login', (req, res) => {
