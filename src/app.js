@@ -10,7 +10,10 @@ const passport = require('passport')
 // (En Schema) const passportLocalMongoose = require('passport-local-mongoose')
 
 // Google OAuth
-const GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
+const GoogleStrategy = require('passport-google-oauth2').Strategy
+
+// Facebook OAuth
+const FacebookStrategy = require('passport-facebook').Strategy
 
 // Hash MD5 
 //const md5 = require('md5')
@@ -41,13 +44,13 @@ require('./db')
 
 const User = require('./models/Users')
 
-
 passport.use(User.createStrategy())
 
 // Local
 // passport.serializeUser(User.serializeUser())
 // passport.deserializeUser(User.deserializeUser())
 
+// Serialize & Desearialize Session
 passport.serializeUser((user, cb) => {
   process.nextTick(() => {
     cb(null, { id: user.id, username: user.username });
@@ -62,14 +65,27 @@ passport.deserializeUser((user, cb) => {
 
 // Google Strategy Config
 passport.use(new GoogleStrategy({
-  clientID:     process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
+  clientID:     process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: "http://localhost:3000/auth/google/secrets",
   passReqToCallback   : true
 },
 (request, accessToken, refreshToken, profile, done) => {
   User.findOrCreate({ username: profile.email }, (err, user) => {
     return done(err, user);
+  });
+}
+));
+
+// Facebook Strategy Config
+passport.use(new FacebookStrategy({
+  clientID: process.env.FACEBOOK_APP_ID,
+  clientSecret: process.env.FACEBOOK_APP_SECRET,
+  callbackURL: "http://localhost:3000/auth/facebook/secrets"
+},
+(accessToken, refreshToken, profile, cb) => {
+  User.findOrCreate({ facebookId: profile.id }, (err, user) => {
+    return cb(err, user);
   });
 }
 ));
@@ -96,6 +112,18 @@ app.get('/auth/google/secrets',
         successRedirect: '/secrets',
         failureRedirect: '/login'
 }));
+
+// Facebook
+app.get('/auth/facebook',
+  passport.authenticate('facebook')
+);
+
+app.get('/auth/facebook/secrets',
+  passport.authenticate('facebook', { 
+      successRedirect: '/secrets',
+      failureRedirect: '/login'
+   })
+);
 
 app.get('/login', (req, res) => {
   if (req.isAuthenticated()) {

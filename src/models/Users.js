@@ -10,6 +10,7 @@ const usersSchema = new Schema ({
     type: String,
     unique: true
   },
+  facebookId: String,
   password: String
 })
 
