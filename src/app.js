@@ -13,7 +13,7 @@ const passport = require('passport')
 const GoogleStrategy = require('passport-google-oauth2').Strategy
 
 // Facebook OAuth
-const FacebookStrategy = require('passport-facebook').Strategy
+// const FacebookStrategy = require('passport-facebook').Strategy
 
 // Hash MD5 
 //const md5 = require('md5')
@@ -78,7 +78,7 @@ passport.use(new GoogleStrategy({
 }
 ));
 
-// Facebook Strategy Config
+/* Facebook Strategy Config
 passport.use(new FacebookStrategy({
   clientID: process.env.FACEBOOK_APP_ID,
   clientSecret: process.env.FACEBOOK_APP_SECRET,
@@ -90,6 +90,7 @@ passport.use(new FacebookStrategy({
   });
 }
 ));
+*/
 
 // Port
 app.set('port', process.env.PORT || 3000)
@@ -114,7 +115,7 @@ app.get('/auth/google/secrets',
         failureRedirect: '/login'
 }));
 
-// Facebook
+/* Facebook
 app.get('/auth/facebook',
   passport.authenticate('facebook')
 );
@@ -125,6 +126,7 @@ app.get('/auth/facebook/secrets',
       failureRedirect: '/login'
    })
 );
+*/
 
 app.get('/login', (req, res) => {
   if (req.isAuthenticated()) {
