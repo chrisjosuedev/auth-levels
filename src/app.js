@@ -43,6 +43,7 @@ app.use(passport.session())
 require('./db')
 
 const User = require('./models/Users')
+const Secret = require('./models/Secrets')
 
 passport.use(User.createStrategy())
 
@@ -143,6 +144,7 @@ app.post('/login', (req, res) => {
 
   req.login(user, (err) => {
     if (err) {
+      res.redirect('/login')
       console.log(err)
     } else {
       passport.authenticate("local")(req, res, () => {
@@ -171,12 +173,42 @@ app.post('/register', (req, res) => {
   })
 })
 
+// Secrets
 app.get('/secrets', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('secrets')
+    Secret.find((err, result) => {
+      if (err) {
+        res.redirect('/')
+      } else {
+        res.render('secrets', {listOfSecrets: result})
+      }
+    })
   } else {
     res.redirect('/login')
   }
+})
+
+// Submit Secret
+app.get('/submit', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('submit')
+  } else {
+    res.redirect('/login')
+  }
+})
+
+app.post('/submit', (req, res) => {
+  const secrets = new Secret({
+    secret: req.body.secret
+  })
+
+  secrets.save((err, result) => {
+    if (err) {
+      res.redirect('/submit')
+    } else {
+      res.redirect('/secrets')
+    }
+  })
 })
 
 app.get('/logout', (req, res) => {
